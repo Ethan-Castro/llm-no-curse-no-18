@@ -1,0 +1,20 @@
+# Core data pipeline
+datasets>=2.14.0
+pyarrow>=14.0.0
+requests>=2.31.0
+beautifulsoup4>=4.12.0
+
+# Content filtering
+alt-profanity-check>=1.8.0
+detoxify>=0.5.1
+torch>=2.0.0
+
+# Dialogue generation (OpenRouter API, OpenAI-compatible)
+openai>=1.0.0
+
+# Utilities
+tqdm>=4.65.0
+tiktoken>=0.5.0
+
+# GGUF conversion
+gguf>=0.1.0
