@@ -1,0 +1,64 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --bg-light: #f0f9ff;
+    --bg-gradient-from: #f0f9ff;
+    --bg-gradient-to: #f0f5ff;
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --accent-sky: #0284c7;
+    --accent-cyan: #06b6d4;
+  }
+
+  html,
+  body {
+    height: 100%;
+    @apply antialiased;
+  }
+
+  body {
+    @apply bg-gradient-to-br from-sky-50 via-blue-50 to-cyan-50 text-slate-900;
+    background:
+      radial-gradient(800px 600px at 20% -10%, rgba(14, 165, 233, 0.1), transparent 60%),
+      radial-gradient(600px 700px at 110% 30%, rgba(6, 182, 212, 0.08), transparent 60%),
+      linear-gradient(135deg, #f0f9ff 0%, #f0f5ff 100%);
+  }
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 8px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: rgba(14, 165, 233, 0.3);
+  border-radius: 8px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: rgba(14, 165, 233, 0.5);
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .gradient-text {
+    background: linear-gradient(
+      to right,
+      #0284c7,
+      #06b6d4,
+      #0ea5e9
+    );
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+}

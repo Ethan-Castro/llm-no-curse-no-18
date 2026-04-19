@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KidsChat — Zero-Curse LLM Training Pipeline</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: #f8f9fc; color: #1a1a2e; line-height: 1.6; }
+
+  /* Gooey filter targets */
+  .gooey { filter: url(#goo-filter); }
+  .gooey-soft { filter: url(#goo-filter-soft); }
+
+  /* Hero */
+  .hero { text-align: center; padding: 80px 20px 60px; background: linear-gradient(135deg, #e8eaf6, #c5cae9, #e3f2fd); border-bottom: 1px solid #ddd; position: relative; overflow: hidden; }
+  .hero::before { content: ''; position: absolute; top: -60px; left: -60px; width: 200px; height: 200px; background: rgba(123,47,247,0.08); border-radius: 50%; }
+  .hero::after { content: ''; position: absolute; bottom: -40px; right: -40px; width: 160px; height: 160px; background: rgba(21,101,192,0.08); border-radius: 50%; }
+  .hero h1 { font-size: 3rem; font-weight: 800; background: linear-gradient(90deg, #1565c0, #7b2ff7); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 12px; position: relative; z-index: 1; }
+  .hero .tagline { font-size: 1.3rem; color: #555; max-width: 700px; margin: 0 auto 30px; position: relative; z-index: 1; }
+  .badges { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; position: relative; z-index: 1; }
+  .badge { padding: 6px 16px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; }
+  .badge.green { background: #e8f5e9; color: #2e7d32; border: 1px solid #a5d6a7; }
+  .badge.blue { background: #e3f2fd; color: #1565c0; border: 1px solid #90caf9; }
+  .badge.purple { background: #f3e5f5; color: #7b1fa2; border: 1px solid #ce93d8; }
+
+  /* Gooey blob decorations */
+  .blob-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; overflow: hidden; filter: url(#goo-filter); z-index: 0; }
+  .blob { position: absolute; border-radius: 50%; }
+  .blob-1 { width: 120px; height: 120px; background: rgba(123,47,247,0.12); top: 20%; left: 8%; animation: blobFloat 8s ease-in-out infinite; }
+  .blob-2 { width: 90px; height: 90px; background: rgba(21,101,192,0.10); top: 60%; right: 10%; animation: blobFloat 10s ease-in-out infinite reverse; }
+  .blob-3 { width: 70px; height: 70px; background: rgba(46,125,50,0.10); top: 30%; right: 25%; animation: blobFloat 12s ease-in-out infinite 2s; }
+  .blob-4 { width: 100px; height: 100px; background: rgba(123,47,247,0.08); bottom: 15%; left: 20%; animation: blobFloat 9s ease-in-out infinite 1s; }
+  .blob-5 { width: 60px; height: 60px; background: rgba(21,101,192,0.12); top: 15%; right: 8%; animation: blobFloat 7s ease-in-out infinite 3s; }
+  @keyframes blobFloat {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    25% { transform: translate(20px, -15px) scale(1.1); }
+    50% { transform: translate(-10px, 20px) scale(0.95); }
+    75% { transform: translate(15px, 10px) scale(1.05); }
+  }
+
+  /* Container */
+  .container { max-width: 1100px; margin: 0 auto; padding: 0 20px; }
+
+  /* Sections */
+  section { padding: 60px 0; border-bottom: 1px solid #e0e0e0; }
+  section:last-child { border-bottom: none; }
+  h2 { font-size: 1.8rem; margin-bottom: 30px; color: #1a1a2e; }
+  h2 span { color: #7b2ff7; }
+  h3 { font-size: 1.1rem; color: #1a1a2e; margin-bottom: 8px; }
+
+  /* Pipeline */
+  .pipeline { display: grid; grid-template-columns: 1fr; gap: 0; position: relative; }
+  .step { display: grid; grid-template-columns: 60px 1fr; gap: 20px; padding: 24px 0; position: relative; }
+  .step-num { width: 52px; height: 52px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1.1rem; flex-shrink: 0; transition: transform 0.3s ease; }
+  .step-num:hover { transform: scale(1.15); }
+  .step-num.source { background: #e8f5e9; color: #2e7d32; border: 2px solid #a5d6a7; box-shadow: 0 4px 15px rgba(46,125,50,0.15); }
+  .step-num.filter { background: #fce4ec; color: #c62828; border: 2px solid #ef9a9a; box-shadow: 0 4px 15px rgba(198,40,40,0.15); }
+  .step-num.gen { background: #f3e5f5; color: #7b1fa2; border: 2px solid #ce93d8; box-shadow: 0 4px 15px rgba(123,31,162,0.15); }
+  .step-num.train { background: #e3f2fd; color: #1565c0; border: 2px solid #90caf9; box-shadow: 0 4px 15px rgba(21,101,192,0.15); }
+  .step-num.deploy { background: #fff8e1; color: #f57f17; border: 2px solid #ffe082; box-shadow: 0 4px 15px rgba(245,127,23,0.15); }
+  .step-content { padding-bottom: 24px; border-bottom: 1px solid #e0e0e0; }
+  .step:last-child .step-content { border-bottom: none; }
+  .step-content p { color: #666; font-size: 0.95rem; margin-bottom: 8px; }
+  .step-content .detail { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 14px 18px; margin-top: 10px; font-size: 0.88rem; color: #555; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+  .step-content .detail code { color: #7b2ff7; background: #f3e5f5; padding: 2px 6px; border-radius: 4px; font-size: 0.85rem; }
+
+  /* Safety layers */
+  .safety-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+  .safety-card { background: #fff; border: 1px solid #e0e0e0; border-radius: 16px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); transition: transform 0.3s ease, box-shadow 0.3s ease; }
+  .safety-card:hover { transform: translateY(-4px); box-shadow: 0 8px 24px rgba(0,0,0,0.08); }
+  .safety-card .layer { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; font-weight: 700; }
+  .safety-card .layer.l0 { color: #c62828; }
+  .safety-card .layer.l1 { color: #f57f17; }
+  .safety-card .layer.l2 { color: #2e7d32; }
+  .safety-card .layer.l3 { color: #1565c0; }
+  .safety-card p { color: #777; font-size: 0.88rem; margin-top: 6px; }
+
+  /* Stats */
+  .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+  .stat { background: #fff; border: 1px solid #e0e0e0; border-radius: 16px; padding: 28px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.04); transition: transform 0.3s ease, box-shadow 0.3s ease; }
+  .stat:hover { transform: translateY(-4px); box-shadow: 0 8px 24px rgba(123,47,247,0.10); }
+  .stat .number { font-size: 2.2rem; font-weight: 800; background: linear-gradient(90deg, #1565c0, #7b2ff7); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .stat .label { color: #888; font-size: 0.85rem; margin-top: 4px; }
+
+  /* Model */
+  .model-specs { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+  .spec-card { background: #fff; border: 1px solid #e0e0e0; border-radius: 12px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+  .spec-card h3 { color: #7b2ff7; margin-bottom: 12px; }
+  .spec-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #f0f0f0; font-size: 0.9rem; }
+  .spec-row:last-child { border-bottom: none; }
+  .spec-row .key { color: #888; }
+  .spec-row .val { color: #1a1a2e; font-weight: 600; }
+
+  /* Tech stack */
+  .tech-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+  .tech { background: #fff; border: 1px solid #e0e0e0; border-radius: 12px; padding: 16px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.04); transition: transform 0.3s ease; }
+  .tech:hover { transform: translateY(-3px) scale(1.02); }
+  .tech .name { font-weight: 700; color: #1a1a2e; font-size: 0.95rem; }
+  .tech .role { color: #999; font-size: 0.8rem; margin-top: 4px; }
+
+  /* Cost */
+  .cost-table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.04); border: 1px solid #e0e0e0; }
+  .cost-table th { background: #f0f0f5; padding: 14px 20px; text-align: left; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; color: #888; }
+  .cost-table td { padding: 14px 20px; border-bottom: 1px solid #f0f0f0; font-size: 0.95rem; color: #333; }
+  .cost-table tr:last-child td { border-bottom: none; }
+  .cost-table .total td { font-weight: 700; color: #2e7d32; background: #e8f5e9; }
+
+  /* Footer */
+  footer { text-align: center; padding: 40px 20px; color: #999; font-size: 0.85rem; }
+  footer a { color: #7b2ff7; text-decoration: none; }
+
+  @media (max-width: 600px) {
+    .hero h1 { font-size: 2rem; }
+    .hero .tagline { font-size: 1rem; }
+    h2 { font-size: 1.4rem; }
+    .stat .number { font-size: 1.6rem; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Gooey SVG Filters -->
+<svg class="hidden" style="position:absolute;width:0;height:0;">
+  <defs>
+    <filter id="goo-filter">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="10" result="blur" />
+      <feColorMatrix in="blur" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 19 -9" result="goo" />
+      <feComposite in="SourceGraphic" in2="goo" operator="atop" />
+    </filter>
+    <filter id="goo-filter-soft">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="5" result="blur" />
+      <feColorMatrix in="blur" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 12 -5" result="goo" />
+      <feComposite in="SourceGraphic" in2="goo" operator="atop" />
+    </filter>
+  </defs>
+</svg>
+
+<!-- Hero -->
+<div class="hero">
+  <div class="blob-container">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    <div class="blob blob-3"></div>
+    <div class="blob blob-4"></div>
+    <div class="blob blob-5"></div>
+  </div>
+  <h1>KidsChat</h1>
+  <p class="tagline">The first LLM trained on a corpus with absolutely zero curse words and zero sexual content. Built for children under 13.</p>
+  <div class="badges gooey-soft">
+    <span class="badge green">Zero Profanity</span>
+    <span class="badge blue">Zero Sexual Content</span>
+    <span class="badge purple">Ages 5-12</span>
+  </div>
+</div>
+
+<!-- Numbers -->
+<section>
+  <div class="container">
+    <h2>By the <span>Numbers</span></h2>
+    <div class="stats-grid">
+      <div class="stat"><div class="number">~3B</div><div class="label">Training tokens</div></div>
+      <div class="stat"><div class="number">300-700M</div><div class="label">Model parameters</div></div>
+      <div class="stat"><div class="number">2.6M</div><div class="label">Documents audited</div></div>
+      <div class="stat"><div class="number">5,000</div><div class="label">Tutoring dialogues</div></div>
+      <div class="stat"><div class="number">24</div><div class="label">Parquet shards</div></div>
+      <div class="stat"><div class="number">4</div><div class="label">Safety layers</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- Pipeline -->
+<section>
+  <div class="container">
+    <h2>Training <span>Pipeline</span></h2>
+    <div class="pipeline">
+
+      <div class="step">
+        <div class="step-num source">1</div>
+        <div class="step-content">
+          <h3>Corpus Collection</h3>
+          <p>Stream kid-safe educational text from two curated sources.</p>
+          <div class="detail">
+            <strong>Cosmopedia (70%)</strong> — HuggingFace's 25B-token synthetic educational dataset, filtered by <code>audience</code> field to only include: <code>young_children</code>, <code>grade_school_students</code>, <code>middle_school_students</code>. Subsets: stories, auto_math_text, openstax, stanford, khanacademy, wikihow. Adult-audience rows and <code>web_samples</code> are excluded entirely.<br><br>
+            <strong>Project Gutenberg (30%)</strong> — Public domain children's literature via the Gutendex API. English-only, topic=children. Boilerplate headers/footers stripped via regex.
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num filter">2</div>
+        <div class="step-content">
+          <h3>Content Safety Audit</h3>
+          <p>Every single document passes through a multi-layer safety filter. If any layer flags it, it's removed.</p>
+          <div class="detail">
+            <strong>Pass 0 — Hardcoded Blocklist:</strong> 200+ terms covering English profanity, Spanish/French/German/Italian/Portuguese curse words, racial slurs, sexual terms, leetspeak variants (f@ck, sh1t, b!tch), and archaic offensive language common in old literature. Case-insensitive regex matching. Instant, runs on CPU.<br><br>
+            <strong>Pass 1 — better_profanity:</strong> Python library with its own comprehensive built-in word list. Catches word-level profanity the blocklist might miss. Runs locally, zero cost.<br><br>
+            <strong>Pass 2 — Llama Guard 4 12B:</strong> Meta's purpose-built content safety classifier (fine-tuned from Llama 4 Scout). Understands <em>context</em>, not just words. Classifies against the MLCommons hazard taxonomy: violence, sexual content, hate speech, self-harm, criminal activity, and more. Each document sent via API and must return exactly <code>safe</code> to pass. 200 concurrent API calls via OpenRouter for speed.
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num filter">3</div>
+        <div class="step-content">
+          <h3>Parquet Sharding</h3>
+          <p>Clean documents are written to nanochat-compatible Parquet shards.</p>
+          <div class="detail">
+            Format: <code>text</code> column, 1024-row row groups, zstd level 3 compression, ~250M chars per shard. Last shard alphabetically = validation shard (nanochat convention). Padded to exact multiples of 1024 rows.
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num gen">4</div>
+        <div class="step-content">
+          <h3>Synthetic Dialogue Generation</h3>
+          <p>5,000 tutoring conversations generated by Gemma 4 31B, then safety-checked by Llama Guard 4.</p>
+          <div class="detail">
+            <strong>Generator:</strong> Google Gemma 4 31B IT via OpenRouter. 95 topic templates across math, science, animals, history, nature, how-things-work, life skills, and space. 50 variations per topic. Temperature 0.9 for diversity.<br><br>
+            <strong>Format:</strong> Each dialogue is 4-8 turns between a curious child (age 8-12) and a patient, encouraging tutor. Output as JSONL arrays matching nanochat's CustomJSON SFT format.<br><br>
+            <strong>Safety:</strong> Every generated dialogue passes through: (1) hardcoded blocklist, (2) Llama Guard 4 context check. Rejected if either flags it. 50 concurrent generation + 30 concurrent safety checks.
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num train">5</div>
+        <div class="step-content">
+          <h3>Tokenizer Training</h3>
+          <p>Train a BPE tokenizer from scratch on our clean corpus.</p>
+          <div class="detail">
+            Uses nanochat's <code>tok_train.py</code> — trains a byte-pair encoding tokenizer directly on the kid-safe corpus. This means the tokenizer's vocabulary is optimized for educational children's content, not general web text.
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num train">6</div>
+        <div class="step-content">
+          <h3>Pretraining</h3>
+          <p>Train the base language model on clean Parquet shards using nanochat.</p>
+          <div class="detail">
+            <strong>Framework:</strong> Karpathy's nanochat — a from-scratch GPT training codebase with modern architecture features (relu&sup2; activation, smear gate, value embeddings, x0-parameterization).<br><br>
+            <strong>Model sizes:</strong> <code>--depth=20</code> for ~300M params, <code>--depth=30</code> for ~700M params.<br><br>
+            <strong>Hardware:</strong> 4x RTX 4090 GPUs rented via Vast.ai or RunPod (~$1.20-1.50/hr). Estimated training time: 70-90 hours. Budget: $85-135.
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num train">7</div>
+        <div class="step-content">
+          <h3>Supervised Fine-Tuning (SFT)</h3>
+          <p>Fine-tune on the 5,000 tutoring dialogues to teach conversational behavior.</p>
+          <div class="detail">
+            Uses nanochat's <code>chat_sft</code> script. The model learns to be a helpful, encouraging tutor that explains concepts at a child's level. Input format: CustomJSON JSONL with alternating user/assistant turns.
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num deploy">8</div>
+        <div class="step-content">
+          <h3>Local Deployment</h3>
+          <p>Convert to GGUF for local inference on consumer hardware.</p>
+          <div class="detail">
+            <strong>Native inference:</strong> nanochat's built-in <code>chat_cli.py</code> — full quality, uses all architecture features.<br><br>
+            <strong>GGUF conversion:</strong> Lossy v1 — maps weights to LLaMA-like structure. Drops nanochat-specific features (smear gate, value embeddings). Enables Q4_K_M quantization for fast CPU inference via llama.cpp or Ollama. Best-effort quality.
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- Safety Deep Dive -->
+<section>
+  <div class="container">
+    <h2>Safety <span>Architecture</span></h2>
+    <p style="color: #888; margin-bottom: 24px;">Four independent layers. A document must pass ALL of them to make it into training data.</p>
+    <div class="safety-grid">
+      <div class="safety-card">
+        <div class="layer l0">Layer 0 — Source Selection</div>
+        <h3>Pre-filtered Sources</h3>
+        <p>Only kid-safe Cosmopedia subsets (filtered by audience metadata) and Gutenberg children's literature. No web scraping. No Reddit. No Wikipedia. No Common Crawl.</p>
+      </div>
+      <div class="safety-card">
+        <div class="layer l1">Layer 1 — Hardcoded Blocklist</div>
+        <h3>200+ Banned Terms</h3>
+        <p>English profanity + Spanish, French, German, Italian, Portuguese curse words. Racial slurs. Sexual terms. Leetspeak variants (f@ck, sh1t, a$$). Archaic offensive terms from old literature. Case-insensitive regex.</p>
+      </div>
+      <div class="safety-card">
+        <div class="layer l2">Layer 2 — Profanity Detection</div>
+        <h3>better_profanity Library</h3>
+        <p>Local Python library with comprehensive built-in word lists. Catches profanity variants and misspellings the blocklist might miss. Zero cost, instant execution.</p>
+      </div>
+      <div class="safety-card">
+        <div class="layer l3">Layer 3 — Llama Guard 4 12B</div>
+        <h3>Contextual AI Safety</h3>
+        <p>Meta's content safety classifier. Understands meaning, not just words. Catches: violence, sexual content, hate speech, self-harm, dangerous activities, and more. MLCommons hazard taxonomy. 200 concurrent API checks.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Model Specs -->
+<section>
+  <div class="container">
+    <h2>Model <span>Specifications</span></h2>
+    <div class="model-specs">
+      <div class="spec-card">
+        <h3>Architecture</h3>
+        <div class="spec-row"><span class="key">Framework</span><span class="val">nanochat (Karpathy)</span></div>
+        <div class="spec-row"><span class="key">Parameters</span><span class="val">300M - 700M</span></div>
+        <div class="spec-row"><span class="key">Activation</span><span class="val">relu&sup2;</span></div>
+        <div class="spec-row"><span class="key">Special Features</span><span class="val">Smear gate, value embeddings</span></div>
+        <div class="spec-row"><span class="key">Parameterization</span><span class="val">x0-parameterization</span></div>
+        <div class="spec-row"><span class="key">Tokenizer</span><span class="val">BPE (trained from scratch)</span></div>
+      </div>
+      <div class="spec-card">
+        <h3>Training Data</h3>
+        <div class="spec-row"><span class="key">Total Tokens</span><span class="val">~3 billion</span></div>
+        <div class="spec-row"><span class="key">Cosmopedia</span><span class="val">70% (educational)</span></div>
+        <div class="spec-row"><span class="key">Gutenberg</span><span class="val">30% (children's lit)</span></div>
+        <div class="spec-row"><span class="key">SFT Dialogues</span><span class="val">5,000 conversations</span></div>
+        <div class="spec-row"><span class="key">Shard Format</span><span class="val">Parquet / zstd / 1024 rows</span></div>
+        <div class="spec-row"><span class="key">Languages</span><span class="val">English</span></div>
+      </div>
+      <div class="spec-card">
+        <h3>Training Hardware</h3>
+        <div class="spec-row"><span class="key">GPUs</span><span class="val">4x RTX 4090</span></div>
+        <div class="spec-row"><span class="key">Provider</span><span class="val">Vast.ai / RunPod</span></div>
+        <div class="spec-row"><span class="key">Cost/Hour</span><span class="val">$1.20 - $1.50</span></div>
+        <div class="spec-row"><span class="key">Training Time</span><span class="val">~70-90 hours</span></div>
+        <div class="spec-row"><span class="key">Inference</span><span class="val">Local (CPU or GPU)</span></div>
+        <div class="spec-row"><span class="key">Export</span><span class="val">GGUF (Q4_K_M)</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Tech Stack -->
+<section>
+  <div class="container">
+    <h2>Tech <span>Stack</span></h2>
+    <div class="tech-grid">
+      <div class="tech"><div class="name">nanochat</div><div class="role">Training framework</div></div>
+      <div class="tech"><div class="name">Gemma 4 31B</div><div class="role">Dialogue generation</div></div>
+      <div class="tech"><div class="name">Llama Guard 4 12B</div><div class="role">Content safety</div></div>
+      <div class="tech"><div class="name">OpenRouter</div><div class="role">API gateway</div></div>
+      <div class="tech"><div class="name">Cosmopedia</div><div class="role">Educational corpus</div></div>
+      <div class="tech"><div class="name">Project Gutenberg</div><div class="role">Children's literature</div></div>
+      <div class="tech"><div class="name">PyArrow</div><div class="role">Parquet I/O</div></div>
+      <div class="tech"><div class="name">better_profanity</div><div class="role">Word-level filter</div></div>
+      <div class="tech"><div class="name">llama.cpp</div><div class="role">GGUF inference</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- Cost Breakdown -->
+<section>
+  <div class="container">
+    <h2>Cost <span>Breakdown</span></h2>
+    <table class="cost-table">
+      <thead>
+        <tr><th>Item</th><th>Detail</th><th style="text-align:right">Cost</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Corpus Audit</td><td>2.6M docs through Llama Guard 4 @ $0.18/M tokens</td><td style="text-align:right">~$47</td></tr>
+        <tr><td>Dialogue Generation</td><td>5,000 dialogues via Gemma 4 31B</td><td style="text-align:right">~$1.80</td></tr>
+        <tr><td>Dialogue Safety</td><td>5,000 Llama Guard 4 checks</td><td style="text-align:right">~$0.25</td></tr>
+        <tr><td>GPU Rental</td><td>4x RTX 4090, ~80 hrs @ $1.35/hr</td><td style="text-align:right">~$108</td></tr>
+        <tr class="total"><td>Total</td><td></td><td style="text-align:right">~$157</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer>
+  <p>KidsChat &mdash; Built with <a href="https://github.com/karpathy/nanochat">nanochat</a> by Karpathy</p>
+  <p style="margin-top: 8px;">The first LLM with zero curse words and zero sexual content in its training data.</p>
+</footer>
+
+</body>
+</html>

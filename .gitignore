@@ -1,0 +1,42 @@
+# --- Large data & model artifacts (do NOT commit) ---
+/checkpoints/
+/kidschat_data/
+/dialogues/
+/nanochat_local/
+
+# --- External git repos (cloned separately) ---
+/nanochat/
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.uv/
+.python-version
+
+# --- Node / Next.js ---
+node_modules/
+.next/
+out/
+dist/
+build/
+*.log
+
+# --- Env & secrets ---
+.env
+.env.local
+.env.production
+.env*.local
+.modal.toml
+
+# --- Editor / OS ---
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# --- Misc ---
+*.tsbuildinfo
+next-env.d.ts

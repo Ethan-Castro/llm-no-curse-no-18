@@ -4,12 +4,10 @@ pyarrow>=14.0.0
 requests>=2.31.0
 beautifulsoup4>=4.12.0
 
-# Content filtering
-alt-profanity-check>=1.8.0
-detoxify>=0.5.1
-torch>=2.0.0
+# Content filtering (blocklist + Llama Guard 4 via OpenRouter)
+better-profanity>=0.7.0
 
-# Dialogue generation (OpenRouter API, OpenAI-compatible)
+# OpenRouter API (Gemma 4 generation + Llama Guard 4 safety)
 openai>=1.0.0
 
 # Utilities
